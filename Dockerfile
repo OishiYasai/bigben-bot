@@ -8,7 +8,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir discord.py apscheduler pytz python-dotenv
+RUN pip install --no-cache-dir discord.py apscheduler pytz python-dotenv PyNaCl
 
 CMD ["python", "bigben_bot.py"]
 
