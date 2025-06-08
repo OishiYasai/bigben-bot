@@ -62,6 +62,18 @@ async def play_hourly_gongs():
 async def test_now():
     await play_hourly_gongs()
 
-client.loop.create_task(test_now())
+class BigBenBot(discord.Client):
+    async def setup_hook(self):
+        print("Running test gong playback at startup...")
+        await play_hourly_gongs()  # test the function once on startup
+
+intents = discord.Intents.default()
+intents.voice_states = True
+intents.members = True  # Only if needed
+
+client = BigBenBot(intents=intents)
+
+client.run(TOKEN)
+
 
 client.run(TOKEN)
