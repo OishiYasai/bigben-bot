@@ -59,4 +59,9 @@ async def play_hourly_gongs():
             except Exception as e:
                 print(f"Error connecting or playing in {most_populated_channel.name}: {e}")
 
+async def test_now():
+    await play_hourly_gongs()
+
+client.loop.create_task(test_now())
+
 client.run(TOKEN)
