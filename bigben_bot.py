@@ -24,13 +24,12 @@ logging.basicConfig(
 
 # Discord intents
 intents = discord.Intents.default()
-intents.voice_states = True
-intents.members = True  # Needed to count non-bot members in channels
+intents.members = True         # needed to see members in voice channels
+intents.voice_states = True    # needed to track voice channel state
 
 # Scheduler setup
 scheduler = AsyncIOScheduler(timezone=LUX_TIMEZONE)
 
-# Core function to join a voice channel and play gongs
 async def play_hourly_gongs():
     logging.info("Looking for voice channel to join...")
 
@@ -39,8 +38,15 @@ async def play_hourly_gongs():
         max_users = 0
 
         for channel in guild.voice_channels:
+            logging.info(f"Checking channel: {channel.name}")
+            # Debug: list every member the bot sees
+            for m in channel.members:
+                logging.info(f"  Found member: {m.name} (bot={m.bot})")
+
+            # Count non-bot members
             user_count = len([m for m in channel.members if not m.bot])
             logging.info(f"Channel '{channel.name}' has {user_count} non-bot users")
+
             if user_count > max_users:
                 max_users = user_count
                 most_populated_channel = channel
@@ -68,23 +74,21 @@ async def play_hourly_gongs():
             except Exception as e:
                 logging.error(f"Failed to join or play audio: {e}")
         else:
-            logging.warning("No populated voice channels found.")
+            logging.warning("No populated voice channels found. Is anyone in a voice channel?")
 
-# Custom bot client
 class BigBenBot(discord.Client):
     async def setup_hook(self):
         logging.info("setup_hook: Running test gong playback on startup...")
         await play_hourly_gongs()
 
-# Create bot instance
 client = BigBenBot(intents=intents)
 
 @client.event
 async def on_ready():
     logging.info(f"Logged in as {client.user}")
+    # Schedule to run at the top of every hour
     scheduler.add_job(play_hourly_gongs, CronTrigger(minute=0))
     scheduler.start()
     logging.info("Scheduler started for hourly gongs.")
 
-# Run the bot
 client.run(TOKEN)
