@@ -1,17 +1,20 @@
 import discord
 import asyncio
 import logging
+import random
+import os
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 import pytz
-import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-GONG_SOUND_PATH = "gong.mp3"
+
+# Folder containing your sound files (.mp3, .wav)
+SOUND_FOLDER = "sounds"
 
 # Timezone for Luxembourg
 LUX_TIMEZONE = pytz.timezone("Europe/Luxembourg")
@@ -31,7 +34,20 @@ intents.voice_states = True
 scheduler = AsyncIOScheduler(timezone=LUX_TIMEZONE)
 
 async def play_hourly_gongs():
-    logging.info("Looking for voice channel to join...2")
+    logging.info("Looking for voice channel to join...")
+
+    # Preload list of available sound files
+    try:
+        sounds = [
+            f for f in os.listdir(SOUND_FOLDER)
+            if f.lower().endswith(('.mp3', '.wav'))
+        ]
+        if not sounds:
+            logging.error(f"No sound files found in '{SOUND_FOLDER}'")
+            return
+    except Exception as e:
+        logging.error(f"Error reading sound folder '{SOUND_FOLDER}': {e}")
+        return
 
     for guild in client.guilds:
         most_populated = None
@@ -60,8 +76,10 @@ async def play_hourly_gongs():
                 logging.info(f"Playing {hour} gong(s) for hour {now.hour}")
 
                 for i in range(hour):
-                    logging.info(f"Playing gong #{i+1}")
-                    vc.play(discord.FFmpegPCMAudio(GONG_SOUND_PATH))
+                    sound_file = random.choice(sounds)
+                    sound_path = os.path.join(SOUND_FOLDER, sound_file)
+                    logging.info(f"Playing sound #{i+1}: {sound_file}")
+                    vc.play(discord.FFmpegPCMAudio(sound_path))
                     while vc.is_playing():
                         await asyncio.sleep(1)
                     await asyncio.sleep(1)
