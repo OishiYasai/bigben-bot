@@ -35,8 +35,7 @@ scheduler = AsyncIOScheduler(timezone=LUX_TIMEZONE)
 
 async def play_hourly_gongs():
     logging.info("Looking for voice channel to join...")
-
-    # Preload list of available sound files
+    # Load available sounds
     try:
         sounds = [
             f for f in os.listdir(SOUND_FOLDER)
@@ -48,6 +47,11 @@ async def play_hourly_gongs():
     except Exception as e:
         logging.error(f"Error reading sound folder '{SOUND_FOLDER}': {e}")
         return
+
+    # Choose one random sound for this invocation (hour)
+    chosen_sound = random.choice(sounds)
+    sound_path = os.path.join(SOUND_FOLDER, chosen_sound)
+    logging.info(f"Selected sound for this hour: {chosen_sound}")
 
     for guild in client.guilds:
         most_populated = None
@@ -73,12 +77,10 @@ async def play_hourly_gongs():
                 hour = now.hour if now.hour <= 12 else now.hour - 12
                 hour = 12 if hour == 0 else hour
 
-                logging.info(f"Playing {hour} gong(s) for hour {now.hour}")
+                logging.info(f"Playing {hour} times '{chosen_sound}' for hour {now.hour}")
 
                 for i in range(hour):
-                    sound_file = random.choice(sounds)
-                    sound_path = os.path.join(SOUND_FOLDER, sound_file)
-                    logging.info(f"Playing sound #{i+1}: {sound_file}")
+                    logging.info(f"Playing instance #{i+1}")
                     vc.play(discord.FFmpegPCMAudio(sound_path))
                     while vc.is_playing():
                         await asyncio.sleep(1)
@@ -97,11 +99,11 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     logging.info(f"Logged in as {client.user}")
-    # schedule hourly job
+    # schedule hourly job at the top of every hour
     scheduler.add_job(play_hourly_gongs, CronTrigger(minute=0))
     scheduler.start()
     logging.info("Scheduler started for hourly gongs.")
-    # test once now that bot is fully ready
+    # initial test
     logging.info("Running initial gong test now that bot is ready...")
     await play_hourly_gongs()
 
